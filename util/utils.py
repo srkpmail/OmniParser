@@ -19,16 +19,27 @@ import numpy as np
 from matplotlib import pyplot as plt
 import easyocr
 from paddleocr import PaddleOCR
-reader = easyocr.Reader(['en'])
-paddle_ocr = PaddleOCR(
-    lang='en',  # other lang also available
-    use_angle_cls=False,
-    use_gpu=False,  # using cuda will conflict with pytorch in the same process
-    show_log=False,
-    max_batch_size=1024,
-    use_dilation=True,  # improves accuracy
-    det_db_score_mode='slow',  # improves accuracy
-    rec_batch_num=1024)
+# Addon Code for Loading OCR Models from offline path
+reader = None
+paddle_ocr = None
+def load_ocr_models(det_model_dir = None, cls_model_dir = None, rec_model_dir = None):
+    global reader
+    reader = easyocr.Reader(['en'])
+
+    global paddle_ocr
+    paddle_ocr = PaddleOCR(
+        lang='en',  # other lang also available
+        det_model_dir = det_model_dir,
+        cls_model_dir = cls_model_dir,
+        rec_model_dir = rec_model_dir,
+        use_angle_cls=False,
+        use_gpu=False,  # using cuda will conflict with pytorch in the same process
+        show_log=False,
+        max_batch_size=1024,
+        use_dilation=True,  # improves accuracy
+        det_db_score_mode='slow',  # improves accuracy
+        rec_batch_num=1024)
+    
 import time
 import base64
 
@@ -117,6 +128,7 @@ def get_parsed_content_icon(filtered_boxes, starting_idx, image_source, caption_
             generated_ids = model.generate(**inputs, max_length=100, num_beams=5, no_repeat_ngram_size=2, early_stopping=True, num_return_sequences=1) # temperature=0.01, do_sample=True,
         generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)
         generated_text = [gen.strip() for gen in generated_text]
+        print(generated_text)
         generated_texts.extend(generated_text)
     
     return generated_texts
@@ -502,6 +514,8 @@ def get_xywh_yolo(input):
     return x, y, w, h
 
 def check_ocr_box(image_source: Union[str, Image.Image], display_img = True, output_bb_format='xywh', goal_filtering=None, easyocr_args=None, use_paddleocr=False):
+    if (paddle_ocr is None) or (reader is None):
+        load_ocr_models()
     if isinstance(image_source, str):
         image_source = Image.open(image_source)
     if image_source.mode == 'RGBA':
