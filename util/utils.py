@@ -22,9 +22,9 @@ from paddleocr import PaddleOCR
 # Addon Code for Loading OCR Models from offline path
 reader = None
 paddle_ocr = None
-def load_ocr_models(det_model_dir = None, cls_model_dir = None, rec_model_dir = None):
+def load_ocr_models(model_storage_directory = None, det_model_dir = None, cls_model_dir = None, rec_model_dir = None):
     global reader
-    reader = easyocr.Reader(['en'])
+    reader = easyocr.Reader(['en'], model_storage_directory = model_storage_directory)
 
     global paddle_ocr
     paddle_ocr = PaddleOCR(
